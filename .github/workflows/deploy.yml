@@ -1,0 +1,65 @@
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "production/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish; queue at most one more.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage the static export
+        run: |
+          rm -rf _site
+          cp -R production _site
+          # Publish the directory verbatim; no Jekyll processing.
+          touch _site/.nojekyll
+
+      - name: Guard against a sub-path deployment
+        run: |
+          # This export uses root-relative URLs and a client router anchored at
+          # "/". It only works when served from the domain root: a
+          # <owner>.github.io repo, or any repo with a custom domain (CNAME).
+          # See DEPLOY.md.
+          if [ -f production/CNAME ]; then
+            echo "Custom domain configured — served from the domain root."
+          elif [ "${{ github.event.repository.name }}" = "${{ github.repository_owner }}.github.io" ]; then
+            echo "User/organisation Pages site — served from the domain root."
+          else
+            echo "::error::This repository would publish to a project-site sub-path"
+            echo "::error::(https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/),"
+            echo "::error::where this export's root-relative URLs break. Rename the repo to"
+            echo "::error::${{ github.repository_owner }}.github.io, or add production/CNAME for a"
+            echo "::error::custom domain. See DEPLOY.md."
+            exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# build output
+/_site/
+out/
+dist/
+.next/
+.vinext/
+.wrangler/
+
+# env / secrets — never commit these
+.env
+.env.*
+
+# os / editor
+.DS_Store
+*.pem
+*.log
+.idea/
+.vscode/
