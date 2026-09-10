@@ -7,6 +7,13 @@ export const siteConfig = {
   mailingAddress: "",
   calendarUrl: "",
   contactFormEndpoint: "",
+  // Adapter for an endpoint that cannot return {"accepted":true}. Leave
+  // contactFormProvider empty for a plain endpoint that already can.
+  contactFormProvider: "" as "" | "web3forms",
+  // Public by design: a Web3Forms access key identifies the destination
+  // inbox and is meant to ship in the browser bundle. Not a secret, and
+  // not a substitute for one — never put a private API key here.
+  contactFormAccessKey: "",
   everWarmDemoUrl: "/demo/#system-demo",
   analyticsId: "",
   analyticsConsentApproach: "",

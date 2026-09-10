@@ -80,3 +80,29 @@ Change values in `agency-source/config/site.ts`, rebuild with
 `npm run build:preview`, and copy the generated `out/production/` over
 `production/` before committing. See `README.md` for the full build and launch
 checklist.
+
+## Connecting the contact form
+
+The form posts JSON and only reports success when the service confirms receipt
+in its own response shape. A plain endpoint you control should return
+`{"accepted": true}`; nothing else in `config/site.ts` is then needed.
+
+Hosted form services do not return that shape, so `contactFormProvider` selects
+a small adapter:
+
+```ts
+contactFormEndpoint: "https://api.web3forms.com/submit",
+contactFormProvider: "web3forms",
+contactFormAccessKey: "<your access key>",
+```
+
+The Web3Forms access key is public by design — it names the destination inbox
+and ships in the browser bundle. It is not a secret, and no private API key of
+any kind belongs in this file.
+
+Selecting a provider without its key leaves the form honestly unconnected rather
+than half-wired: it refuses submission with the same "not connected yet"
+message.
+
+Rebuild and copy `out/production/` over `production/` for the change to reach
+the live site.

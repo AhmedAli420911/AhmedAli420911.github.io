@@ -21,3 +21,6 @@ dist/
 *.log
 .idea/
 .vscode/
+
+# typescript incremental build cache
+*.tsbuildinfo

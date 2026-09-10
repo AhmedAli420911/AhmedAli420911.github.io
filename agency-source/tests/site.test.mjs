@@ -36,6 +36,24 @@ test('server-confirmed acceptance sends JSON with consent and no credentials',as
   assert.equal(sent.url,'/api/review');assert.equal(sent.method,'POST');assert.equal(sent.credentials,'omit');assert.equal(sent.redirect,'error');
   const body=JSON.parse(sent.body);assert.equal(body.consent,true);assert.match(body.consentText,/may contact me/);assert.equal(body.problem,valid.problem);assert.deepEqual(Object.keys(body).sort(),['fullName','email','company','problem','consent','consentText'].sort());
 });
+test('the web3forms adapter sends its key and honours only its own acknowledgement',async()=>{
+  const adapter={provider:'web3forms',accessKey:'test-access-key'};
+  let body;
+  await submitRequest(valid,'https://api.web3forms.com/submit',async(url,options)=>{body=JSON.parse(options.body);return new Response(JSON.stringify({success:true}),{status:200});},adapter);
+  assert.equal(body.access_key,'test-access-key');
+  assert.equal(body.consent,true);assert.match(body.consentText,/may contact me/);assert.equal(body.problem,valid.problem);
+  // The provider's own shape is the only thing that may confirm receipt for it.
+  for(const shape of ['{"accepted":true}','{"success":false}','{"success":"true"}','{}'])
+    await assert.rejects(submitRequest(valid,'https://api.web3forms.com/submit',async()=>new Response(shape,{status:200}),adapter),/did not confirm receipt/);
+});
+test('a provider chosen without its key is treated as unconnected',async()=>{
+  let called=false;
+  await assert.rejects(submitRequest(valid,'https://api.web3forms.com/submit',async()=>{called=true;},{provider:'web3forms',accessKey:''}),/not connected yet.*not been sent/);
+  assert.equal(called,false);
+});
+test('the default contract still rejects a provider-shaped acknowledgement',async()=>{
+  await assert.rejects(submitRequest(valid,'/api/review',async()=>new Response('{"success":true}',{status:200})),/did not confirm receipt/);
+});
 test('HTTP failures cannot report acceptance',async()=>{
   for(const status of [400,429,500]) await assert.rejects(submitRequest(valid,'/api/review',async()=>new Response(JSON.stringify({accepted:true}),{status})),/could not be confirmed/);
 });

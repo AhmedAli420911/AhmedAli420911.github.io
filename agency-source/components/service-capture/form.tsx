@@ -63,7 +63,8 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
     pending.current = true;
     setStatus("loading"); setMessage("");
     try {
-      await submitRequest(values, offline ? "" : siteConfig.contactFormEndpoint);
+      await submitRequest(values, offline ? "" : siteConfig.contactFormEndpoint, fetch,
+        {provider: siteConfig.contactFormProvider, accessKey: siteConfig.contactFormAccessKey});
       setStatus("success"); setMessage("Request received. We’ll review the information and contact you using the details provided.");
       setValues({...emptyRequest});
     } catch (error) {
