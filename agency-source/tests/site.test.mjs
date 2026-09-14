@@ -34,22 +34,12 @@ test('server-confirmed acceptance sends JSON with consent and no credentials',as
   let sent;
   await submitRequest(valid,'/api/review',async(url,options)=>{sent={url,...options};return new Response(JSON.stringify({accepted:true}),{status:200});});
   assert.equal(sent.url,'/api/review');assert.equal(sent.method,'POST');assert.equal(sent.credentials,'omit');assert.equal(sent.redirect,'error');
-  const body=JSON.parse(sent.body);assert.equal(body.consent,true);assert.match(body.consentText,/may contact me/);assert.equal(body.problem,valid.problem);assert.deepEqual(Object.keys(body).sort(),['fullName','email','company','problem','consent','consentText'].sort());
+  const body=JSON.parse(sent.body);assert.equal(body.consent,true);assert.match(body.consentText,/may contact me/);assert.equal(body.problem,valid.problem);assert.deepEqual(Object.keys(body).sort(),['fullName','email','company','problem','consent','consentText','hp'].sort());assert.equal(body.hp,'');
 });
-test('the web3forms adapter sends its key and honours only its own acknowledgement',async()=>{
-  const adapter={provider:'web3forms',accessKey:'test-access-key'};
+test('the honeypot value is forwarded so the server can drop automated submissions',async()=>{
   let body;
-  await submitRequest(valid,'https://api.web3forms.com/submit',async(url,options)=>{body=JSON.parse(options.body);return new Response(JSON.stringify({success:true}),{status:200});},adapter);
-  assert.equal(body.access_key,'test-access-key');
-  assert.equal(body.consent,true);assert.match(body.consentText,/may contact me/);assert.equal(body.problem,valid.problem);
-  // The provider's own shape is the only thing that may confirm receipt for it.
-  for(const shape of ['{"accepted":true}','{"success":false}','{"success":"true"}','{}'])
-    await assert.rejects(submitRequest(valid,'https://api.web3forms.com/submit',async()=>new Response(shape,{status:200}),adapter),/did not confirm receipt/);
-});
-test('a provider chosen without its key is treated as unconnected',async()=>{
-  let called=false;
-  await assert.rejects(submitRequest(valid,'https://api.web3forms.com/submit',async()=>{called=true;},{provider:'web3forms',accessKey:''}),/not connected yet.*not been sent/);
-  assert.equal(called,false);
+  await submitRequest(valid,'/api/review',async(url,options)=>{body=JSON.parse(options.body);return new Response('{"accepted":true}');},'filled-by-bot');
+  assert.equal(body.hp,'filled-by-bot');
 });
 test('the default contract still rejects a provider-shaped acknowledgement',async()=>{
   await assert.rejects(submitRequest(valid,'/api/review',async()=>new Response('{"success":true}',{status:200})),/did not confirm receipt/);
@@ -83,7 +73,8 @@ test('metadata, semantic pages, labels and honest defaults are present',async()=
   for(const route of routes){
     const html=await readFile(`out/production/${route}`,'utf8');
     assert.equal([...html.matchAll(/<h1[ >]/g)].length,1);assert.match(html,/<main id="main-content"/);
-    assert.doesNotMatch(html,/href="(?:mailto:|tel:)"|href="#"|application\/ld\+json|googletagmanager|google-analytics/);
+    assert.doesNotMatch(html,/href="(?:mailto:|tel:)"|href="#"|googletagmanager|google-analytics|facebook\.net|gtag\(/);
+    if(route!=='index.html') assert.doesNotMatch(html,/application\/ld\+json/);
   }
   const home=await readFile('out/production/index.html','utf8');
   assert.match(home,/<title>HVAC Inquiry and Missed-Call Systems \| Service Capture Co\.<\/title>/);
@@ -91,8 +82,48 @@ test('metadata, semantic pages, labels and honest defaults are present',async()=
   for(const field of Object.keys(emptyRequest).filter(key=>key!=='consent')) assert.match(home,new RegExp(`(?:for|id)="${field}"`));
   assert.doesNotMatch(home,/Request received\./);
 });
-test('all legal pages remain marked for professional review',async()=>{
-  for(const route of ['privacy','terms','accessibility']) assert.match(await readFile(`out/production/${route}/index.html`,'utf8'),/Professional review required/);
+test('legal pages are honest about review status',async()=>{
+  assert.match(await readFile('out/production/privacy/index.html','utf8'),/has not been reviewed by a lawyer/);
+  for(const route of ['terms','accessibility']) assert.match(await readFile(`out/production/${route}/index.html`,'utf8'),/Professional review pending/);
+});
+test('privacy page names the real providers, contact and retention practice',async()=>{
+  const html=await readFile('out/production/privacy/index.html','utf8');
+  for(const text of ['Cloudflare','Resend','Google Workspace','privacy@servicecaptureco.com','until you ask us to delete them','does not use analytics'])assert.ok(html.includes(text),text);
+});
+const origin='https://servicecaptureco.com';
+const pagePaths={'index.html':'/','interactive-demo/index.html':'/interactive-demo/','privacy/index.html':'/privacy/','terms/index.html':'/terms/','accessibility/index.html':'/accessibility/'};
+test('indexable pages declare the canonical origin and Open Graph URL',async()=>{
+  for(const [route,pathname] of Object.entries(pagePaths)){
+    const html=await readFile(`out/production/${route}`,'utf8');
+    assert.ok(html.includes(`<link rel="canonical" href="${origin}${pathname}">`),route);
+    assert.ok(html.includes(`<meta property="og:url" content="${origin}${pathname}">`),route);
+  }
+  const notFound=await readFile('out/production/404.html','utf8');
+  assert.match(notFound,/<meta name="robots" content="noindex">/);assert.doesNotMatch(notFound,/rel="canonical"/);
+});
+test('structured data holds only supplied business facts',async()=>{
+  const html=await readFile('out/production/index.html','utf8');
+  const data=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+  assert.deepEqual(Object.keys(data).sort(),['@context','@type','name','url','description','email','telephone'].sort());
+  assert.equal(data.url,`${origin}/`);assert.equal(data.email,'hello@servicecaptureco.com');assert.equal(data.telephone,'+1 647-510-1465');
+});
+test('robots.txt and sitemap.xml point at the canonical origin',async()=>{
+  assert.match(await readFile('out/production/robots.txt','utf8'),new RegExp(`Sitemap: ${origin}/sitemap.xml`));
+  const sitemap=await readFile('out/production/sitemap.xml','utf8');
+  for(const pathname of Object.values(pagePaths))assert.ok(sitemap.includes(`<loc>${origin}${pathname}</loc>`),pathname);
+  assert.doesNotMatch(sitemap,/404|\/demo\//);
+});
+test('public contact details are exactly the supplied ones and the private mailbox never ships',async()=>{
+  const files=[...routes.map(route=>`out/production/${route}`),'out/production/assets/site.js'];
+  for(const file of files){
+    const text=await readFile(file,'utf8');
+    assert.doesNotMatch(text,/ahmedali@|(?<![A-Za-z0-9_$])re_[A-Za-z0-9]{8,}_?[A-Za-z0-9_]{8,}|api\.resend\.com/,file);
+    for(const [,href] of text.matchAll(/href="(mailto:[^"]+|tel:[^"]+)"/g)) assert.ok(['mailto:hello@servicecaptureco.com','mailto:privacy@servicecaptureco.com','tel:+16475101465'].includes(href),`${file}: ${href}`);
+    if(file.endsWith('.html')) assert.doesNotMatch(text,/packaged preview|once it is connected|before public launch|not connected yet\. Your request/i,file);
+  }
+});
+test('server-provided short error messages reach the visitor',async()=>{
+  await assert.rejects(submitRequest(valid,'/api/review',async()=>new Response(JSON.stringify({accepted:false,error:'Too many requests. Please wait a minute and try again.'}),{status:429})),/Too many requests/);
 });
 test('standalone embeds the identical EverWarm demo and no external asset files',async()=>{
   const html=await readFile('out/Service-Capture-Co-Preview.html','utf8');
@@ -115,13 +146,14 @@ test('form and preparation schema contain only the short first-contact fields',a
   const html=await readFile('out/production/index.html','utf8');
   const form=html.match(/<form[\s\S]*?<\/form>/)[0];
   const fields=[...form.matchAll(/<(?:input|textarea|select)[^>]+name="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(fields,['fullName','email','company','problem','consent']);
+  assert.deepEqual(fields,['fullName','email','company','problem','consent','hp']);
+  assert.match(form,/class="hp-field" aria-hidden="true"/);assert.match(form,/name="hp"[^>]*tabindex="-1"|tabindex="-1"[^>]*name="hp"/i);
   for(const field of ['website','phone','region','volume','software']) assert.doesNotMatch(form,new RegExp(`name="${field}"`));
 });
 test('payload omits stale removed fields even when supplied by an older caller',async()=>{
   let body;
   await submitRequest({...valid,website:'https://example.com',phone:'5551234567',region:'Ontario',volume:'11–25',software:'Old CRM'},'/api/review',async(url,options)=>{body=JSON.parse(options.body);return new Response('{"accepted":true}');});
-  assert.deepEqual(Object.keys(body).sort(),['fullName','email','company','problem','consent','consentText'].sort());
+  assert.deepEqual(Object.keys(body).sort(),['fullName','email','company','problem','consent','consentText','hp'].sort());
 });
 test('all primary hosted demo CTAs open the business workflow safely',async()=>{
   for(const route of ['index.html','interactive-demo/index.html']) {

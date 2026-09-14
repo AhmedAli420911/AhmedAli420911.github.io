@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "build:preview": "node scripts/build-preview.mjs",
-    "test": "node scripts/build-preview.mjs && node --test tests/*.test.mjs"
+    "test": "node scripts/build-preview.mjs && node --test tests/*.test.mjs ../cloudflare/tests/*.test.mjs",
+    "sync:production": "node scripts/build-preview.mjs && rm -rf ../production && cp -R out/production ../production",
+    "deploy:site": "npm run sync:production && wrangler deploy --config ../cloudflare/wrangler.jsonc"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

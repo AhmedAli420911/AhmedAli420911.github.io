@@ -71,3 +71,6 @@
 }
 
 .demo-page-hero p:not(.eyebrow):not(.small){font-size:16px;line-height:1.75}
+
+/* Spam trap: kept off-screen rather than display:none, which some bots detect. */
+.hp-field{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}

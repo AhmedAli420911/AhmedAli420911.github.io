@@ -12,6 +12,7 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState("");
+  const [trap, setTrap] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const pending = useRef(false);
   useEffect(() => {
@@ -63,10 +64,9 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
     pending.current = true;
     setStatus("loading"); setMessage("");
     try {
-      await submitRequest(values, offline ? "" : siteConfig.contactFormEndpoint, fetch,
-        {provider: siteConfig.contactFormProvider, accessKey: siteConfig.contactFormAccessKey});
+      await submitRequest(values, offline ? "" : siteConfig.contactFormEndpoint, fetch, trap);
       setStatus("success"); setMessage("Request received. We’ll review the information and contact you using the details provided.");
-      setValues({...emptyRequest});
+      setValues({...emptyRequest}); setTrap("");
     } catch (error) {
       setStatus("error"); setMessage(error instanceof Error ? error.message : "The request could not be sent. Please try again.");
     } finally { pending.current = false; }
@@ -86,6 +86,7 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
       </div>)}
       <div className="field full"><label htmlFor="problem">Biggest inquiry-handling problem</label><textarea id="problem" name="problem" rows={4} maxLength={3000} required value={values.problem} onChange={event => change("problem", event.target.value)} aria-invalid={Boolean(errors.problem)} aria-describedby={errors.problem ? "problem-error" : "problem-hint"}/><small id="problem-hint">Describe the process. Please do not include customer information.</small>{errors.problem && <small id="problem-error" className="field-error">{errors.problem}</small>}</div>
     </div><label className="consent"><input name="consent" type="checkbox" checked={values.consent} required onChange={event => change("consent", event.target.checked)} aria-invalid={Boolean(errors.consent)} aria-describedby={errors.consent ? "consent-error" : undefined}/><span>I agree that Service Capture Co. may contact me about this request.</span></label>{errors.consent && <small id="consent-error" className="field-error">{errors.consent}</small>}
+    <div className="hp-field" aria-hidden="true"><label htmlFor="hp">Leave this field empty</label><input id="hp" name="hp" type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={event => setTrap(event.target.value)}/></div>
     <p className="privacy-hint">Your details are used to review and respond to this request. <a href={privacyHref}>Privacy policy</a></p>
     <button className="button primary submit-button" type="submit">{status === "loading" ? <><LoaderCircle className="spin" size={18}/> Sending request…</> : <>Request My System Review <ArrowUpRight size={18}/></>}</button></fieldset>
     <div aria-live="polite" aria-atomic="true">{message && <p className={`form-message ${status}`} role={status === "error" ? "alert" : "status"}>{message}</p>}</div>

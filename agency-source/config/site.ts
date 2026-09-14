@@ -1,19 +1,15 @@
-// Public configuration only. Never put credentials or API keys in this file.
+// Public configuration only: everything in this file ships to the browser.
+// Never put credentials, API keys or the private inquiry mailbox here. The
+// recipient mailbox and the email-provider key live server-side in
+// ../cloudflare/wrangler.jsonc (vars) and Cloudflare secrets.
 // See README.md for accepted URL formats, form contract and launch requirements.
 export const siteConfig = {
-  websiteDomain: "",
-  businessEmail: "",
-  businessPhone: "",
+  websiteDomain: "https://servicecaptureco.com",
+  businessEmail: "hello@servicecaptureco.com",
+  businessPhone: "+1 647-510-1465",
   mailingAddress: "",
   calendarUrl: "",
-  contactFormEndpoint: "",
-  // Adapter for an endpoint that cannot return {"accepted":true}. Leave
-  // contactFormProvider empty for a plain endpoint that already can.
-  contactFormProvider: "" as "" | "web3forms",
-  // Public by design: a Web3Forms access key identifies the destination
-  // inbox and is meant to ship in the browser bundle. Not a secret, and
-  // not a substitute for one — never put a private API key here.
-  contactFormAccessKey: "",
+  contactFormEndpoint: "/api/review",
   everWarmDemoUrl: "/demo/#system-demo",
   analyticsId: "",
   analyticsConsentApproach: "",
