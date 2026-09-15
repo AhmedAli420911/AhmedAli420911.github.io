@@ -74,3 +74,7 @@
 
 /* Spam trap: kept off-screen rather than display:none, which some bots detect. */
 .hp-field{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+
+/* Booking CTA in the contact section, alongside the inquiry form. */
+.booking-cta{margin:28px 0 8px;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.booking-cta p{font-size:15px;line-height:1.7;margin:0}

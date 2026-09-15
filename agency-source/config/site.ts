@@ -8,7 +8,7 @@ export const siteConfig = {
   businessEmail: "hello@servicecaptureco.com",
   businessPhone: "+1 647-510-1465",
   mailingAddress: "",
-  calendarUrl: "",
+  calendarUrl: "https://calendar.app.google/j1aRFzNcKrRw3qVg9",
   contactFormEndpoint: "/api/review",
   everWarmDemoUrl: "/demo/#system-demo",
   analyticsId: "",

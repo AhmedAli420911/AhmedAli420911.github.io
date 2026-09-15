@@ -104,8 +104,44 @@ test('indexable pages declare the canonical origin and Open Graph URL',async()=>
 test('structured data holds only supplied business facts',async()=>{
   const html=await readFile('out/production/index.html','utf8');
   const data=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
-  assert.deepEqual(Object.keys(data).sort(),['@context','@type','name','url','description','email','telephone'].sort());
+  assert.deepEqual(Object.keys(data).sort(),['@context','@type','name','url','description','email','telephone','potentialAction'].sort());
   assert.equal(data.url,`${origin}/`);assert.equal(data.email,'hello@servicecaptureco.com');assert.equal(data.telephone,'+1 647-510-1465');
+  assert.deepEqual(data.potentialAction,{'@type':'ReserveAction',name:'Book a 20-Minute Review',target:calendarUrl});
+  assert.doesNotMatch(JSON.stringify(data),/address|streetAddress|postalCode/i);
+});
+const calendarUrl=(await readFile('config/site.ts','utf8')).match(/calendarUrl:\s*"([^"]*)"/)[1];
+const bookingLinks=html=>[...html.matchAll(/<a([^>]*)>Book a 20-Minute Review/g)].map(([,attrs])=>attrs);
+test('the configured booking page is a safe public Google Calendar link',()=>{
+  assert.match(calendarUrl,/^https:\/\/calendar\.app\.google\/[A-Za-z0-9]+$/);
+  assert.equal(safeWebUrl(calendarUrl),calendarUrl);
+});
+test('every booking CTA opens the Google Calendar booking page in a new tab safely',async()=>{
+  const expected={'index.html':4,'interactive-demo/index.html':2,'privacy/index.html':1,'terms/index.html':1,'accessibility/index.html':1,'404.html':1};
+  for(const [route,count] of Object.entries(expected)){
+    const links=bookingLinks(await readFile(`out/production/${route}`,'utf8'));
+    assert.equal(links.length,count,route);
+    for(const attrs of links){
+      assert.ok(attrs.includes(`href="${calendarUrl}"`),`${route}: ${attrs}`);
+      assert.match(attrs,/target="_blank"/);assert.match(attrs,/rel="noopener noreferrer"/);
+      assert.match(attrs,/aria-label="Book a 20-Minute Review \(opens the Google Calendar booking page in a new tab\)"/);
+    }
+  }
+});
+test('booking CTAs sit in the header, hero, pricing, contact and demo closing sections',async()=>{
+  const home=await readFile('out/production/index.html','utf8');
+  const sections=[/<header[\s\S]*?<\/header>/,/class="hero-actions"[\s\S]*?<\/div>/,/id="pricing"[\s\S]*?<\/section>/,/class="booking-cta"[\s\S]*?<\/div>/];
+  for(const pattern of sections){const block=home.match(pattern);assert.ok(block,String(pattern));assert.equal(bookingLinks(block[0]).length,1,String(pattern));}
+  const demo=await readFile('out/production/interactive-demo/index.html','utf8');
+  assert.equal(bookingLinks(demo.match(/<header[\s\S]*?<\/header>/)[0]).length,1);
+  assert.equal(bookingLinks(demo.slice(demo.indexOf('</header>'))).length,1);
+});
+test('the inquiry form stays reachable and separate from the booking page',async()=>{
+  const home=await readFile('out/production/index.html','utf8');
+  assert.match(home,/<a class="text-link light" href="\/#contact">Or send a System Review request/);
+  assert.match(home,/id="contact"[\s\S]*?<form/);
+  const form=home.match(/<form[\s\S]*?<\/form>/)[0];
+  assert.doesNotMatch(form,/calendar\.app\.google/);
+  assert.doesNotMatch(home,/limited spots|only \d+ (?:spots|slots) left|book now before|act fast|expires? (?:today|soon)/i);
 });
 test('robots.txt and sitemap.xml point at the canonical origin',async()=>{
   assert.match(await readFile('out/production/robots.txt','utf8'),new RegExp(`Sitemap: ${origin}/sitemap.xml`));
