@@ -278,5 +278,6 @@ test("wrangler config: one public origin, persistent guard, forms sender, no sec
   assert.equal(config.vars.INQUIRY_FROM, "Service Capture Co. Website <notifications@forms.servicecaptureco.com>");
   assert.equal(config.vars.INQUIRY_TO, "ahmedali@servicecaptureco.com");
   assert.equal(config.vars.RESEND_API_KEY, undefined);
+  assert.equal(config.vars.HSTS, "on");
   assert.doesNotMatch(source, /re_[A-Za-z0-9]{8,}/);
 });

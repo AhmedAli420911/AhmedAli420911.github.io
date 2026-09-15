@@ -27,8 +27,9 @@
     // Server-side only; never shipped to the browser.
     "INQUIRY_TO": "ahmedali@servicecaptureco.com",
     "INQUIRY_FROM": "Service Capture Co. Website <notifications@forms.servicecaptureco.com>",
-    // Switch to "on" only after HTTPS is confirmed on the custom domain.
-    "HSTS": "off"
+    // HTTPS confirmed on 2026-09-15 (valid certificate, http and www 301 to
+    // https://servicecaptureco.com), so browsers may now remember HTTPS-only.
+    "HSTS": "on"
   },
   // RESEND_API_KEY is a secret: set it with `wrangler secret put RESEND_API_KEY`,
   // never in this file.
