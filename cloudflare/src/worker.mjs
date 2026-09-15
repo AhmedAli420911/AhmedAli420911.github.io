@@ -1,6 +1,8 @@
 import { handleInquiry } from "./inquiry.mjs";
 import { withSecurityHeaders } from "./headers.mjs";
 
+export { InquiryGuard } from "./guard.mjs";
+
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 export function canonicalRedirect(url, env) {
