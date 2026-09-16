@@ -6,6 +6,9 @@ import { guardCall } from "./guard.mjs";
 export const CONSENT_TEXT = "I agree that Service Capture Co. may contact me about this request.";
 export const MAX_BODY_BYTES = 16 * 1024;
 const LIMITS = { fullName: 200, email: 200, company: 200, problem: 3000 };
+// Optional interest field. Absent or empty is valid; anything else must match the published list,
+// so an older cached page that omits it still submits successfully.
+export const SERVICE_OPTIONS = ["HVAC Website", "Website Growth & Care", "Inquiry Capture System", "Custom Workflow Automation", "Not Sure Yet"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // C0 controls except tab, LF and CR, plus DEL.
 const CONTROL = new RegExp("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]", "g");
@@ -43,6 +46,11 @@ export function validateInquiry(input) {
     errors.email = "Enter a valid business email address.";
     delete values.email;
   }
+  const service = clean("service", input.service);
+  if (service) {
+    if (SERVICE_OPTIONS.includes(service)) values.service = service;
+    else errors.service = "Choose one of the listed options.";
+  }
   if (input.consent !== true || input.consentText !== CONSENT_TEXT) {
     errors.consent = "Please agree to be contacted about this request.";
   }
@@ -58,7 +66,7 @@ export function escapeHtml(value) {
 // produces an identical body, which Resend's idempotency key requires. The
 // receive time is already on the email itself.
 export function buildEmail(values, env) {
-  const rows = [["Name", values.fullName], ["Business email", values.email], ["Company", values.company]];
+  const rows = [["Name", values.fullName], ["Business email", values.email], ["Company", values.company], ...(values.service ? [["Service interest", values.service]] : [])];
   const text = [
     "New System Review request from servicecaptureco.com",
     "",

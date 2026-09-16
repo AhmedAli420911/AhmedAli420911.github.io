@@ -281,3 +281,42 @@ test("wrangler config: one public origin, persistent guard, forms sender, no sec
   assert.equal(config.vars.HSTS, "on");
   assert.doesNotMatch(source, /re_[A-Za-z0-9]{8,}/);
 });
+
+test("the optional service field is accepted, echoed in the email, and never required", async () => {
+  // Absent: an older cached page still submits successfully.
+  const { values } = validateInquiry(valid);
+  assert.equal(values.service, undefined);
+  assert.doesNotMatch(buildEmail(values, envWith()).text, /Service interest/);
+  const chosen = validateInquiry({ ...valid, service: "Inquiry Capture System" });
+  assert.deepEqual(chosen.errors, {});
+  assert.equal(chosen.values.service, "Inquiry Capture System");
+  const email = buildEmail(chosen.values, envWith());
+  assert.match(email.text, /Service interest: Inquiry Capture System/);
+  assert.match(email.html, /<td><strong>Service interest<\/strong><\/td><td>Inquiry Capture System<\/td>/);
+  // Empty string behaves like absent.
+  assert.deepEqual(validateInquiry({ ...valid, service: "  " }).errors, {});
+  const { send, calls } = resendOk();
+  const response = await handleInquiry(post({ ...valid, service: "HVAC Website" }), envWith(), { send });
+  assert.equal(response.status, 200);
+  assert.match(JSON.parse(calls[0].init.body).text, /Service interest: HVAC Website/);
+});
+
+test("an unrecognised service value is refused before anything is sent", async () => {
+  assert.deepEqual(Object.keys(validateInquiry({ ...valid, service: "Free website" }).errors), ["service"]);
+  assert.equal(validateInquiry({ ...valid, service: 42 }).errors.service, undefined);
+  const { send, calls } = resendOk();
+  const response = await handleInquiry(post({ ...valid, service: "<script>alert(1)</script>" }), envWith(), { send });
+  assert.equal(response.status, 422);
+  assert.equal((await response.json()).errors.service, "Choose one of the listed options.");
+  assert.equal(calls.length, 0);
+});
+
+test("the service choice does not change duplicate detection or the idempotency key", async () => {
+  const env = envWith();
+  const { send, calls } = resendOk();
+  await handleInquiry(post({ ...valid, service: "HVAC Website" }), env, { send });
+  const second = await handleInquiry(post({ ...valid, service: "Not Sure Yet" }), env, { send });
+  assert.equal(second.status, 200);
+  assert.equal((await second.json()).duplicate, true);
+  assert.equal(calls.length, 1);
+});
