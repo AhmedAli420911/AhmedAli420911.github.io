@@ -78,3 +78,76 @@
 /* Booking CTA in the contact section, alongside the inquiry form. */
 .booking-cta{margin:28px 0 8px;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
 .booking-cta p{font-size:15px;line-height:1.7;margin:0}
+
+/* Ways We Can Help (homepage) and the Services page. */
+.three-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.ways-section{background:var(--surface);border-top:1px solid #e7ecf2;border-bottom:1px solid #e7ecf2}
+.way-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:30px 28px;display:flex;flex-direction:column;gap:12px}
+.way-icon{height:42px;width:42px;border:1px solid #dce6f9;border-radius:8px;display:grid;place-items:center;color:var(--blue);background:#f2f6fd;margin-bottom:6px}
+.way-card h3{font-size:20px;margin:0}
+.way-price{font-size:14px!important;font-weight:600;color:var(--navy);margin:0}
+.way-card>p{font-size:14px;line-height:1.75;margin:0}
+.way-note{border-top:1px solid var(--border);padding-top:14px;font-size:13px!important;line-height:1.7}
+.way-note strong{color:var(--ink)}
+.way-card .text-link{margin-top:auto;padding-top:6px}
+.ways-footer{display:flex;align-items:center;gap:24px;margin-top:34px;flex-wrap:wrap}
+.ways-footer p{margin:0;font-size:14px}
+.pricing-link{margin:30px 0 0}
+.services-hero{padding:42px 0 75px;background:var(--navy);color:#fff}
+.services-hero .back-link{color:#b4c8df}
+.services-hero .eyebrow{color:#adc9f3}
+.services-hero h1{max-width:900px}
+.services-hero h1 span{color:#a8c6f9}
+.services-hero p:not(.eyebrow):not(.small){max-width:760px;color:#bdcbdc;font-size:16px;line-height:1.75}
+.services-hero .small{margin:18px 0 0;color:#aebbc9}
+.services-hero .primary{background:var(--orange);color:#202b35}
+.services-hero .primary:hover{background:#f7b889}
+.services-hero-actions{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:8px}
+.services-stack{display:grid;gap:26px}
+.service-block{border:1px solid var(--border);border-radius:9px;background:#fff;padding:36px 34px;scroll-margin-top:110px}
+.service-head{display:grid;grid-template-columns:1.5fr .85fr;gap:40px;align-items:start;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.service-index{display:inline-flex;align-items:center;justify-content:center;border:1px solid #c8d7ee;background:#e9f0fc;border-radius:5px;color:var(--blue);width:39px;height:39px;font-size:12px;margin-bottom:20px}
+.service-head h2{font-size:32px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:none}
+.service-badge{font-size:12px;letter-spacing:.08em;font-weight:700;color:#22674c;background:#e8f4ed;border:1px solid #bcdccb;border-radius:4px;padding:5px 9px;white-space:nowrap}
+.service-summary{font-size:16px;line-height:1.75;margin:0;max-width:640px}
+.service-price-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:26px 24px}
+.price-figure{font-size:27px;color:var(--navy);font-weight:600;letter-spacing:-.04em;line-height:1.2;margin:0 0 8px}
+.price-note{font-size:13px!important;margin:0 0 20px;line-height:1.6}
+.service-price-card .button{width:100%}
+.service-detail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px;padding-top:28px}
+.service-detail h3{font-size:16px;margin-bottom:18px}
+.service-detail .checklist li{font-size:14px;line-height:1.6}
+.exclude-note{margin:16px 0 0;font-size:13px!important;line-height:1.7}
+.compare-section{background:var(--surface);border-top:1px solid #e7ecf2;border-bottom:1px solid #e7ecf2}
+.compare-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:8px;background:#fff}
+.compare-table{border-collapse:collapse;width:100%;min-width:720px;text-align:left}
+.compare-table th,.compare-table td{padding:18px 20px;border-bottom:1px solid var(--border);font-size:14px;line-height:1.65;vertical-align:top;color:var(--muted)}
+.compare-table thead th{background:var(--navy);color:#fff;font-size:13px;letter-spacing:.04em;white-space:nowrap}
+.compare-table tbody th{color:var(--ink);font-weight:600;width:230px}
+.compare-table tbody tr:last-child th,.compare-table tbody tr:last-child td{border-bottom:0}
+.compare-table tbody tr:nth-child(2n) th,.compare-table tbody tr:nth-child(2n) td{background:#f8fafc}
+.compare-note{margin:18px 0 0}
+@media(max-width:1000px){
+ .three-grid{grid-template-columns:1fr;gap:20px}
+ .service-block{padding:30px 26px}
+ .service-head{grid-template-columns:1fr;gap:26px}
+ .service-head h2{font-size:28px}
+ .service-detail{grid-template-columns:1fr;gap:28px}
+ .service-price-card{max-width:420px}
+}
+@media(max-width:650px){
+ .services-hero{padding:29px 0 45px}
+ .services-hero h1{font-size:40px}
+ .services-hero-actions{gap:18px;align-items:flex-start;flex-direction:column}
+ .services-hero .button{width:100%}
+ .way-card{padding:26px 23px}
+ .way-card h3{font-size:19px}
+ .ways-footer{gap:16px}
+ .ways-footer .button{width:100%}
+ .service-block{padding:26px 22px}
+ .service-head h2{font-size:26px}
+ .service-index{margin-bottom:16px}
+ .price-figure{font-size:24px}
+ .compare-table th,.compare-table td{padding:14px 16px}
+ .compare-table tbody th{width:180px}
+}

@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 const root = process.cwd();
 await build({configFile: false, root, plugins: [react()], define: {'process.env.NODE_ENV': '"production"'}, build: {outDir: 'out/preview-assets', emptyOutDir: true, lib: {entry: 'preview-entry.tsx', formats: ['iife'], name: 'ServiceCapture', fileName: () => 'site.js'}, cssCodeSplit: false, sourcemap: false}});
 await build({configFile: false, root, plugins: [react()], define: {'process.env.NODE_ENV': '"production"'}, build: {outDir: 'out/render', emptyOutDir: true, ssr: 'render-entry.tsx', rollupOptions: {output: {entryFileNames: 'render.mjs'}}}});
-const {render, siteTitle, siteDescription, siteConfig} = await import(pathToFileURL(path.join(root, 'out/render/render.mjs')).href);
+const {render, siteTitle, siteDescription, siteConfig, services} = await import(pathToFileURL(path.join(root, 'out/render/render.mjs')).href);
 const css = await readFile('out/preview-assets/service-capture-co.css', 'utf8').catch(async () => {
   const {readdir} = await import('node:fs/promises');
   const files = await readdir('out/preview-assets');
@@ -18,18 +18,29 @@ const js = await readFile('out/preview-assets/site.js','utf8');
 const demo = await readFile('public/demo/index.html');
 const favicon = await readFile('public/favicon.svg','utf8');
 const origin = siteConfig.websiteDomain.replace(/\/+$/, '');
-const indexable = ['home','interactive-demo','privacy','terms','accessibility'];
+const indexable = ['home','services','interactive-demo','privacy','terms','accessibility'];
 const pagePath = page => page === 'home' ? '/' : `/${page}/`;
-const pageTitle = page => page === 'home' ? siteTitle : `${page === '404' ? 'Page not found' : page.charAt(0).toUpperCase()+page.slice(1).replaceAll('-',' ')} | Service Capture Co.`;
+const titles = {home: siteTitle, services: 'HVAC Websites, Inquiry Systems and Automation | Service Capture Co.'};
+const descriptions = {services: 'Four services for independent HVAC companies: an HVAC Website Launch starting at CAD $999, optional Website Growth & Care at CAD $250 per month, the CAD $2,500 HVAC Inquiry Capture System, and custom workflow automation quoted after a workflow review.'};
+const pageTitle = page => titles[page] || `${page === '404' ? 'Page not found' : page.charAt(0).toUpperCase()+page.slice(1).replaceAll('-',' ')} | Service Capture Co.`;
+const pageDescription = page => descriptions[page] || siteDescription;
 const attr = value => String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 // Structured data states only what the business has supplied: no address, ratings, reviews or results.
-const organization = JSON.stringify({'@context': 'https://schema.org', '@type': 'Organization', name: 'Service Capture Co.', url: `${origin}/`, description: siteDescription, ...(siteConfig.businessEmail ? {email: siteConfig.businessEmail} : {}), ...(siteConfig.businessPhone ? {telephone: siteConfig.businessPhone} : {}), ...(siteConfig.calendarUrl ? {potentialAction: {'@type': 'ReserveAction', name: 'Book a 20-Minute Review', target: siteConfig.calendarUrl}} : {})}).replaceAll('<','\\u003c');
-const seo = (page, offline) => offline || !origin ? '' : !indexable.includes(page) ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${origin}${pagePath(page)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Service Capture Co."><meta property="og:title" content="${attr(pageTitle(page))}"><meta property="og:description" content="${attr(siteDescription)}"><meta property="og:url" content="${origin}${pagePath(page)}">${page === 'home' ? `<script type="application/ld+json">${organization}</script>` : ''}`;
-const doc = (page, offline = false) => `<!doctype html><html lang="en" data-preview="${offline ? 'offline' : 'static'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle(page)}</title><meta name="description" content="${siteDescription}">${seo(page, offline)}<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(favicon)}">${offline ? `<style>${css.replaceAll('</style','<\\/style')}</style>` : '<link rel="stylesheet" href="/assets/site.css">'}</head><body><div id="root">${render(page, offline)}</div>${offline ? `<script id="everwarm-data" type="application/octet-stream">${demo.toString('base64')}</script><script>${js.replaceAll('</script','<\\/script')}</script>` : '<script src="/assets/site.js" defer></script>'}</body></html>`;
+const priceSpecification = ({kind, amount}) => kind === 'quote' ? null
+  : kind === 'monthly' ? {'@type': 'UnitPriceSpecification', priceCurrency: 'CAD', price: amount, unitText: 'month'}
+  : kind === 'from' ? {'@type': 'PriceSpecification', priceCurrency: 'CAD', minPrice: amount}
+  : {'@type': 'PriceSpecification', priceCurrency: 'CAD', price: amount};
+const offerCatalog = {'@type': 'OfferCatalog', name: 'Services for independent HVAC companies', itemListElement: services.map(service => {
+  const price = priceSpecification(service.offer);
+  return {'@type': 'Offer', name: service.name, description: service.summary, url: `${origin}/services/#${service.id}`, ...(price ? {priceSpecification: price} : {}), itemOffered: {'@type': 'Service', name: service.name, description: service.summary, serviceType: service.name, provider: {'@type': 'Organization', name: 'Service Capture Co.', url: `${origin}/`}}};
+})};
+const organization = JSON.stringify({'@context': 'https://schema.org', '@type': 'Organization', name: 'Service Capture Co.', url: `${origin}/`, description: siteDescription, ...(siteConfig.businessEmail ? {email: siteConfig.businessEmail} : {}), ...(siteConfig.businessPhone ? {telephone: siteConfig.businessPhone} : {}), ...(siteConfig.calendarUrl ? {potentialAction: {'@type': 'ReserveAction', name: 'Book a 20-Minute Review', target: siteConfig.calendarUrl}} : {}), hasOfferCatalog: offerCatalog}).replaceAll('<','\\u003c');
+const seo = (page, offline) => offline || !origin ? '' : !indexable.includes(page) ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${origin}${pagePath(page)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Service Capture Co."><meta property="og:title" content="${attr(pageTitle(page))}"><meta property="og:description" content="${attr(pageDescription(page))}"><meta property="og:url" content="${origin}${pagePath(page)}">${page === 'home' || page === 'services' ? `<script type="application/ld+json">${organization}</script>` : ''}`;
+const doc = (page, offline = false) => `<!doctype html><html lang="en" data-preview="${offline ? 'offline' : 'static'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle(page)}</title><meta name="description" content="${attr(pageDescription(page))}">${seo(page, offline)}<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(favicon)}">${offline ? `<style>${css.replaceAll('</style','<\\/style')}</style>` : '<link rel="stylesheet" href="/assets/site.css">'}</head><body><div id="root">${render(page, offline)}</div>${offline ? `<script id="everwarm-data" type="application/octet-stream">${demo.toString('base64')}</script><script>${js.replaceAll('</script','<\\/script')}</script>` : '<script src="/assets/site.js" defer></script>'}</body></html>`;
 await mkdir('out/production/assets',{recursive:true});
 await writeFile('out/production/assets/site.css',css);
 await writeFile('out/production/assets/site.js',js);
-for (const page of ['home','interactive-demo','privacy','terms','accessibility','404']) {
+for (const page of ['home','services','interactive-demo','privacy','terms','accessibility','404']) {
   const file = page === 'home' ? 'index.html' : page === '404' ? '404.html' : `${page}/index.html`;
   await mkdir(path.dirname(`out/production/${file}`),{recursive:true});
   await writeFile(`out/production/${file}`,doc(page));

@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect, useSyncExternalStore } from "react";
 import { SitePage, type PageName } from "./components/service-capture/site";
 import "./app/globals.css";
-const pages = ["home", "interactive-demo", "privacy", "terms", "accessibility", "404"];
+const pages = ["home", "services", "interactive-demo", "privacy", "terms", "accessibility", "404"];
 const offline = document.documentElement.dataset.preview === "offline";
 function subscribe(listener: () => void) {window.addEventListener("hashchange", listener); return () => window.removeEventListener("hashchange", listener);}
 function snapshot() {return window.location.hash;}

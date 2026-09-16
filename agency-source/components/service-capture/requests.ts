@@ -1,6 +1,8 @@
-export type ReviewRequest = { fullName: string; email: string; company: string; problem: string; consent: boolean };
-export const emptyRequest: ReviewRequest = {fullName: "", email: "", company: "", problem: "", consent: false};
-export const requestSchema = {type: "object", additionalProperties: false, properties: Object.fromEntries(Object.keys(emptyRequest).filter(key => key !== "consent").map(key => [key, {type: "string", maxLength: key === "problem" ? 3000 : 200}]))};
+// Optional interest field: blank is always valid, and any other value must match this list.
+export const serviceOptions = ["HVAC Website", "Website Growth & Care", "Inquiry Capture System", "Custom Workflow Automation", "Not Sure Yet"] as const;
+export type ReviewRequest = { fullName: string; email: string; company: string; problem: string; service: string; consent: boolean };
+export const emptyRequest: ReviewRequest = {fullName: "", email: "", company: "", problem: "", service: "", consent: false};
+export const requestSchema = {type: "object", additionalProperties: false, properties: Object.fromEntries(Object.keys(emptyRequest).filter(key => key !== "consent").map(key => [key, key === "service" ? {type: "string", enum: [...serviceOptions, ""]} : {type: "string", maxLength: key === "problem" ? 3000 : 200}]))};
 export function safeWebUrl(value: string, relative = false) {
   if (relative && /^\/(?!\/)[^\s\\]*$/.test(value)) return value;
   try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password ? url.href : ""; } catch { return ""; }
@@ -15,6 +17,8 @@ export function validateRequest(values: ReviewRequest) {
     if (typeof value === "string" && value.length > (key === "problem" ? 3000 : 200)) errors[key] = "Please shorten this value.";
   }
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Enter a valid business email address.";
+  // The service field stays optional; only an unrecognised value is an error.
+  if (values.service && !(serviceOptions as readonly string[]).includes(values.service.trim())) errors.service = "Choose one of the listed options.";
   if (values.consent !== true) errors.consent = "Please agree to be contacted about this request.";
   return errors;
 }
@@ -28,7 +32,7 @@ export async function submitRequest(values: ReviewRequest, endpoint: string, tra
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const response = await transport(endpoint, {method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json"}, credentials: "omit", redirect: "error", signal: controller.signal, body: JSON.stringify({fullName: values.fullName, email: values.email, company: values.company, problem: values.problem, consent: values.consent, consentText: consentStatement, hp: honeypot})});
+    const response = await transport(endpoint, {method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json"}, credentials: "omit", redirect: "error", signal: controller.signal, body: JSON.stringify({fullName: values.fullName, email: values.email, company: values.company, problem: values.problem, service: values.service, consent: values.consent, consentText: consentStatement, hp: honeypot})});
     if (!response.ok) {
       // The same-origin endpoint explains rate limits and validation failures; anything else stays generic.
       const detail: unknown = await response.json().catch(() => null);

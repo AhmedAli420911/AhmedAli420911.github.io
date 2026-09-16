@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowUpRight, LoaderCircle } from "lucide-react";
 import { siteConfig } from "../../config/site";
-import { emptyRequest, validateRequest, submitRequest, type ReviewRequest, requestSchema } from "./requests";
+import { emptyRequest, validateRequest, submitRequest, serviceOptions, type ReviewRequest, requestSchema } from "./requests";
 
 type ModelTool = { name: string; title: string; description: string; inputSchema: object; annotations: { readOnlyHint: boolean }; execute: (input: unknown) => unknown };
 type ModelDocument = Document & { modelContext?: { registerTool: (tool: ModelTool, options: {signal: AbortSignal}) => void | Promise<void> } };
@@ -27,7 +27,7 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
         if (pending.current) return {status: "busy"};
         if (!input || typeof input !== "object" || Array.isArray(input)) return {status: "invalid", error: "Expected request fields."};
         const record = input as Record<string, unknown>;
-        if (Object.keys(record).some(key => !Object.hasOwn(requestSchema.properties, key))) return {status: "invalid", error: "Only fullName, email, company and problem can be prepared."};
+        if (Object.keys(record).some(key => !Object.hasOwn(requestSchema.properties, key))) return {status: "invalid", error: "Only fullName, email, company, problem and service can be prepared."};
         const next = {...emptyRequest};
         for (const key of Object.keys(next) as (keyof ReviewRequest)[]) {
           if (key === "consent") continue;
@@ -77,13 +77,14 @@ export function ReviewForm({ offline = false, privacyHref }: {offline?: boolean;
     {key: "company", label: "Company name", auto: "organization"},
   ];
   return <form ref={formRef} noValidate onSubmit={submit} className="review-form" aria-label="System Review request">
-    <p className="form-intro">A few details to start the conversation.<span>All fields are required. We’ll cover the remaining details during the review.</span></p>
+    <p className="form-intro">A few details to start the conversation.<span>All fields are required except the service question. We’ll cover the remaining details during the review.</span></p>
     <fieldset disabled={status === "loading"}><legend className="sr-only">Your business and inquiry process</legend><div className="form-grid">
       {fields.map(field => <div className={field.key === "company" ? "field full" : "field"} key={field.key}>
         <label htmlFor={field.key}>{field.label}</label>
         <input id={field.key} name={field.key} type={field.type || "text"} autoComplete={field.auto} required maxLength={200} value={values[field.key]} onChange={event => change(field.key, event.target.value)} aria-invalid={Boolean(errors[field.key])} aria-describedby={errors[field.key] ? `${field.key}-error` : undefined}/>
         {errors[field.key] && <small id={`${field.key}-error`} className="field-error">{errors[field.key]}</small>}
       </div>)}
+      <div className="field full"><label htmlFor="service">Which service are you interested in? <span>(optional)</span></label><select id="service" name="service" value={values.service} onChange={event => change("service", event.target.value)} aria-invalid={Boolean(errors.service)} aria-describedby={errors.service ? "service-error" : undefined}><option value="">Select an option</option>{serviceOptions.map(option => <option key={option} value={option}>{option}</option>)}</select>{errors.service && <small id="service-error" className="field-error">{errors.service}</small>}</div>
       <div className="field full"><label htmlFor="problem">Biggest inquiry-handling problem</label><textarea id="problem" name="problem" rows={4} maxLength={3000} required value={values.problem} onChange={event => change("problem", event.target.value)} aria-invalid={Boolean(errors.problem)} aria-describedby={errors.problem ? "problem-error" : "problem-hint"}/><small id="problem-hint">Describe the process. Please do not include customer information.</small>{errors.problem && <small id="problem-error" className="field-error">{errors.problem}</small>}</div>
     </div><label className="consent"><input name="consent" type="checkbox" checked={values.consent} required onChange={event => change("consent", event.target.checked)} aria-invalid={Boolean(errors.consent)} aria-describedby={errors.consent ? "consent-error" : undefined}/><span>I agree that Service Capture Co. may contact me about this request.</span></label>{errors.consent && <small id="consent-error" className="field-error">{errors.consent}</small>}
     <div className="hp-field" aria-hidden="true"><label htmlFor="hp">Leave this field empty</label><input id="hp" name="hp" type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={event => setTrap(event.target.value)}/></div>

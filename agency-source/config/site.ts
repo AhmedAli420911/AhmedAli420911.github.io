@@ -14,5 +14,5 @@ export const siteConfig = {
   analyticsId: "",
   analyticsConsentApproach: "",
 };
-export const siteTitle = "HVAC Inquiry and Missed-Call Systems | Service Capture Co.";
-export const siteDescription = "Service Capture Co. builds website and call-intake systems that help independent HVAC companies capture, route and track customer inquiries.";
+export const siteTitle = "HVAC Websites and Inquiry Systems | Service Capture Co.";
+export const siteDescription = "Service Capture Co. helps independent HVAC companies improve how customers find them, request service and move through the inquiry process, with websites, inquiry-capture systems and custom workflow automation.";
